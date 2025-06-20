@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -9,22 +10,67 @@ import { CaloriesChart } from "@/components/CaloriesChart";
 import { BodyPartRecommendations } from "@/components/BodyPartRecommendations";
 import { WorkoutTracker } from "@/components/WorkoutTracker";
 import { StatsOverview } from "@/components/StatsOverview";
-import { Activity, Target, TrendingUp, Calendar } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Activity, Target, TrendingUp, Calendar, LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 const Index = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('week');
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Signed out successfully');
+      navigate('/auth');
+    } catch (error) {
+      toast.error('Error signing out');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2 py-6">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Fitness Dashboard
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Track your progress and optimize your workout routine
-          </p>
+        <div className="flex justify-between items-center py-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Fitness Dashboard
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Welcome back, {user.user_metadata?.full_name || user.email}!
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleSignOut}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
 
         {/* Quick Stats */}
