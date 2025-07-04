@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { useState } from 'react';
+import { useFitnessData } from "@/hooks/useFitnessData";
 
 interface CaloriesChartProps {
   timeframe: string;
@@ -11,17 +12,32 @@ interface CaloriesChartProps {
 
 export const CaloriesChart = ({ timeframe, detailed = false }: CaloriesChartProps) => {
   const [chartType, setChartType] = useState('bar');
+  const { weeklyCalories } = useFitnessData();
 
-  const weeklyData = [
-    { day: 'Mon', calories: 450, goal: 600 },
-    { day: 'Tue', calories: 320, goal: 600 },
-    { day: 'Wed', calories: 580, goal: 600 },
-    { day: 'Thu', calories: 420, goal: 600 },
-    { day: 'Fri', calories: 680, goal: 600 },
-    { day: 'Sat', calories: 520, goal: 600 },
-    { day: 'Sun', calories: 390, goal: 600 },
-  ];
+  // Generate week data with proper day names
+  const generateWeekData = () => {
+    const today = new Date();
+    const weekData = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      const dayStats = weeklyCalories?.find(stat => stat.date === dateStr);
+      
+      weekData.push({
+        day: dayName,
+        calories: dayStats?.calories_burned || 0,
+        goal: dayStats?.calorie_goal || 600
+      });
+    }
+    
+    return weekData;
+  };
 
+  // For now, we'll use mock monthly data since we don't have enough historical data yet
   const monthlyData = [
     { week: 'Week 1', calories: 2850, goal: 4200 },
     { week: 'Week 2', calories: 3200, goal: 4200 },
@@ -29,7 +45,7 @@ export const CaloriesChart = ({ timeframe, detailed = false }: CaloriesChartProp
     { week: 'Week 4', calories: 3650, goal: 4200 },
   ];
 
-  const currentData = timeframe === 'week' ? weeklyData : monthlyData;
+  const currentData = timeframe === 'week' ? generateWeekData() : monthlyData;
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">

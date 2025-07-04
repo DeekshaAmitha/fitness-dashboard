@@ -5,46 +5,118 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Target, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
+import { useFitnessData } from "@/hooks/useFitnessData";
 
 interface BodyPartRecommendationsProps {
   detailed?: boolean;
 }
 
 export const BodyPartRecommendations = ({ detailed = false }: BodyPartRecommendationsProps) => {
-  const bodyParts = [
+  const { bodyPartProgress, recentWorkouts } = useFitnessData();
+
+  // Default body parts if none exist in database
+  const defaultBodyParts = [
     {
       name: "Upper Body",
-      progress: 65,
-      lastWorked: "2 days ago",
-      priority: "high",
+      progress: 0,
+      lastWorked: "Never",
+      priority: "high" as const,
       exercises: ["Push-ups", "Pull-ups", "Shoulder Press"],
       nextSession: "Today"
     },
     {
       name: "Core",
-      progress: 80,
-      lastWorked: "1 day ago",
-      priority: "medium",
+      progress: 0,
+      lastWorked: "Never",
+      priority: "medium" as const,
       exercises: ["Planks", "Russian Twists", "Mountain Climbers"],
       nextSession: "Tomorrow"
     },
     {
       name: "Lower Body",
-      progress: 45,
-      lastWorked: "4 days ago",
-      priority: "high",
+      progress: 0,
+      lastWorked: "Never",
+      priority: "high" as const,
       exercises: ["Squats", "Lunges", "Calf Raises"],
       nextSession: "Today"
     },
     {
       name: "Cardio",
-      progress: 90,
-      lastWorked: "Today",
-      priority: "low",
+      progress: 0,
+      lastWorked: "Never",
+      priority: "low" as const,
       exercises: ["Running", "Cycling", "Jump Rope"],
       nextSession: "Day after tomorrow"
     },
   ];
+
+  const calculateLastWorked = (bodyPart: string) => {
+    if (!recentWorkouts) return "Never";
+    
+    const lastWorkout = recentWorkouts.find(workout => 
+      workout.body_parts.includes(bodyPart)
+    );
+    
+    if (!lastWorkout) return "Never";
+    
+    const daysDiff = Math.floor(
+      (new Date().getTime() - new Date(lastWorkout.completed_at).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    if (daysDiff === 0) return "Today";
+    if (daysDiff === 1) return "Yesterday";
+    return `${daysDiff} days ago`;
+  };
+
+  const calculateProgress = (bodyPart: string) => {
+    if (!recentWorkouts) return 0;
+    
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    const recentWorkoutsForBodyPart = recentWorkouts.filter(workout => 
+      workout.body_parts.includes(bodyPart) && 
+      new Date(workout.completed_at) >= weekAgo
+    );
+    
+    // Assume 3 sessions per week is 100%
+    return Math.min((recentWorkoutsForBodyPart.length / 3) * 100, 100);
+  };
+
+  const bodyParts = bodyPartProgress && bodyPartProgress.length > 0 
+    ? bodyPartProgress.map(bp => ({
+        name: bp.body_part,
+        progress: calculateProgress(bp.body_part),
+        lastWorked: calculateLastWorked(bp.body_part),
+        priority: bp.priority as 'low' | 'medium' | 'high',
+        exercises: getExercisesForBodyPart(bp.body_part),
+        nextSession: getNextSession(bp.priority)
+      }))
+    : defaultBodyParts.map(bp => ({
+        ...bp,
+        progress: calculateProgress(bp.name),
+        lastWorked: calculateLastWorked(bp.name)
+      }));
+
+  function getExercisesForBodyPart(bodyPart: string) {
+    const exerciseMap: { [key: string]: string[] } = {
+      "Upper Body": ["Push-ups", "Pull-ups", "Shoulder Press"],
+      "Core": ["Planks", "Russian Twists", "Mountain Climbers"],
+      "Lower Body": ["Squats", "Lunges", "Calf Raises"],
+      "Cardio": ["Running", "Cycling", "Jump Rope"],
+      "Full Body": ["Burpees", "Mountain Climbers", "Jumping Jacks"]
+    };
+    return exerciseMap[bodyPart] || ["General Exercise"];
+  }
+
+  function getNextSession(priority: string) {
+    switch (priority) {
+      case 'high': return "Today";
+      case 'medium': return "Tomorrow";
+      case 'low': return "Day after tomorrow";
+      default: return "This week";
+    }
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -63,6 +135,8 @@ export const BodyPartRecommendations = ({ detailed = false }: BodyPartRecommenda
       default: return null;
     }
   };
+
+  const highPriorityParts = bodyParts.filter(part => part.priority === 'high');
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -94,7 +168,7 @@ export const BodyPartRecommendations = ({ detailed = false }: BodyPartRecommenda
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span>Weekly Progress</span>
-                <span className="font-medium">{part.progress}%</span>
+                <span className="font-medium">{Math.round(part.progress)}%</span>
               </div>
               <Progress value={part.progress} className="h-2" />
             </div>
@@ -134,8 +208,12 @@ export const BodyPartRecommendations = ({ detailed = false }: BodyPartRecommenda
             Today's Recommendation
           </h4>
           <p className="text-sm text-muted-foreground mb-3">
-            Focus on <strong>Upper Body</strong> and <strong>Lower Body</strong> today. 
-            You haven't trained these areas recently and they're showing high priority status.
+            {highPriorityParts.length > 0 ? (
+              <>Focus on <strong>{highPriorityParts.map(p => p.name).join(' and ')}</strong> today. 
+              You haven't trained these areas recently and they're showing high priority status.</>
+            ) : (
+              "Great job keeping up with your routine! Consider a full body workout today."
+            )}
           </p>
           <Button size="sm" className="w-full">
             Start Recommended Workout

@@ -3,12 +3,53 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Flame, Target, Trophy, Clock } from "lucide-react";
+import { useFitnessData } from "@/hooks/useFitnessData";
 
 export const StatsOverview = () => {
-  const todayCalories = 420;
-  const calorieGoal = 600;
-  const weeklyProgress = 75;
-  const currentStreak = 5;
+  const { dailyStats, recentWorkouts, bodyPartProgress } = useFitnessData();
+
+  const todayCalories = dailyStats?.calories_burned || 0;
+  const calorieGoal = dailyStats?.calorie_goal || 600;
+  const weeklyProgress = Math.min((todayCalories / calorieGoal) * 100, 100);
+  
+  // Calculate streak from recent workouts
+  const calculateStreak = () => {
+    if (!recentWorkouts || recentWorkouts.length === 0) return 0;
+    
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() - i);
+      const dateStr = checkDate.toDateString();
+      
+      const hasWorkout = recentWorkouts.some(workout => 
+        new Date(workout.completed_at).toDateString() === dateStr
+      );
+      
+      if (hasWorkout) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const currentStreak = calculateStreak();
+
+  // Get today's focus from body part progress
+  const getTodayFocus = () => {
+    if (!bodyPartProgress || bodyPartProgress.length === 0) return "Full Body";
+    
+    const highPriorityParts = bodyPartProgress
+      .filter(bp => bp.priority === 'high')
+      .sort((a, b) => new Date(a.last_worked_date || '1970-01-01').getTime() - new Date(b.last_worked_date || '1970-01-01').getTime());
+    
+    return highPriorityParts[0]?.body_part || "Full Body";
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -20,9 +61,9 @@ export const StatsOverview = () => {
         <CardContent>
           <div className="text-2xl font-bold text-orange-600">{todayCalories}</div>
           <div className="space-y-2 mt-2">
-            <Progress value={(todayCalories / calorieGoal) * 100} className="h-2" />
+            <Progress value={weeklyProgress} className="h-2" />
             <p className="text-xs text-muted-foreground">
-              {calorieGoal - todayCalories} calories to goal
+              {Math.max(0, calorieGoal - todayCalories)} calories to goal
             </p>
           </div>
         </CardContent>
@@ -30,15 +71,15 @@ export const StatsOverview = () => {
 
       <Card className="hover:shadow-lg transition-shadow duration-300">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Weekly Goal</CardTitle>
+          <CardTitle className="text-sm font-medium">Daily Goal</CardTitle>
           <Target className="h-4 w-4 text-blue-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{weeklyProgress}%</div>
+          <div className="text-2xl font-bold text-blue-600">{Math.round(weeklyProgress)}%</div>
           <div className="space-y-2 mt-2">
             <Progress value={weeklyProgress} className="h-2" />
             <p className="text-xs text-muted-foreground">
-              Great progress this week!
+              {weeklyProgress >= 100 ? 'Goal achieved!' : 'Keep pushing!'}
             </p>
           </div>
         </CardContent>
@@ -64,7 +105,7 @@ export const StatsOverview = () => {
         </CardHeader>
         <CardContent>
           <Badge variant="secondary" className="bg-purple-100 text-purple-800">
-            Upper Body
+            {getTodayFocus()}
           </Badge>
           <p className="text-xs text-muted-foreground mt-2">
             Based on your routine

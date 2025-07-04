@@ -5,11 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, Clock, Flame, Play, Pause, Square } from "lucide-react";
 import { useState } from "react";
+import { WorkoutForm } from "@/components/WorkoutForm";
+import { useFitnessData } from "@/hooks/useFitnessData";
 
 export const WorkoutTracker = () => {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [workoutTime, setWorkoutTime] = useState(0);
   const [currentWorkout, setCurrentWorkout] = useState<string | null>(null);
+  const { recentWorkouts, refreshAllData } = useFitnessData();
 
   const upcomingWorkouts = [
     {
@@ -38,29 +41,17 @@ export const WorkoutTracker = () => {
     }
   ];
 
-  const recentWorkouts = [
-    {
-      name: "Morning Cardio",
-      date: "Today",
-      duration: "25 min",
-      caloriesBurned: 320,
+  const formatWorkoutData = (workouts: any[]) => {
+    return workouts.map(workout => ({
+      name: workout.name,
+      date: new Date(workout.completed_at).toLocaleDateString(),
+      duration: `${workout.duration_minutes} min`,
+      caloriesBurned: workout.calories_burned,
       completed: true
-    },
-    {
-      name: "Core Blast",
-      date: "Yesterday",
-      duration: "20 min",
-      caloriesBurned: 180,
-      completed: true
-    },
-    {
-      name: "Full Body",
-      date: "2 days ago",
-      duration: "40 min",
-      caloriesBurned: 450,
-      completed: true
-    }
-  ];
+    }));
+  };
+
+  const formattedRecentWorkouts = formatWorkoutData(recentWorkouts || []);
 
   const startWorkout = (workoutName: string) => {
     setCurrentWorkout(workoutName);
@@ -82,6 +73,9 @@ export const WorkoutTracker = () => {
 
   return (
     <div className="space-y-6">
+      {/* Workout Form */}
+      <WorkoutForm onWorkoutAdded={refreshAllData} />
+
       {/* Active Workout Card */}
       {isWorkoutActive && (
         <Card className="border-green-200 bg-green-50">
@@ -115,10 +109,10 @@ export const WorkoutTracker = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-blue-600" />
-              Upcoming Workouts
+              Suggested Workouts
             </CardTitle>
             <CardDescription>
-              Your scheduled training sessions
+              Recommended training sessions
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -175,29 +169,36 @@ export const WorkoutTracker = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentWorkouts.map((workout, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <h3 className="font-semibold">{workout.name}</h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{workout.duration}</span>
-                      <span className="flex items-center gap-1">
-                        <Flame className="h-3 w-3 text-orange-500" />
-                        {workout.caloriesBurned} cal
-                      </span>
+            {formattedRecentWorkouts.length > 0 ? (
+              formattedRecentWorkouts.slice(0, 5).map((workout, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <h3 className="font-semibold">{workout.name}</h3>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>{workout.duration}</span>
+                        <span className="flex items-center gap-1">
+                          <Flame className="h-3 w-3 text-orange-500" />
+                          {workout.caloriesBurned} cal
+                        </span>
+                      </div>
                     </div>
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      Completed
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    Completed
-                  </Badge>
+                  <div className="text-xs text-muted-foreground">
+                    {workout.date}
+                  </div>
+                  {index < formattedRecentWorkouts.length - 1 && index < 4 && <Separator />}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {workout.date}
-                </div>
-                {index < recentWorkouts.length - 1 && <Separator />}
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No workouts logged yet.</p>
+                <p className="text-sm">Start by logging your first workout above!</p>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       </div>

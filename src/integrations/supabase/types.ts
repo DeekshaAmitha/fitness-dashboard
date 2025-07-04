@@ -9,7 +9,111 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      body_part_progress: {
+        Row: {
+          body_part: string
+          created_at: string
+          id: string
+          last_worked_date: string | null
+          priority: string | null
+          updated_at: string
+          user_id: string
+          weekly_sessions: number | null
+        }
+        Insert: {
+          body_part: string
+          created_at?: string
+          id?: string
+          last_worked_date?: string | null
+          priority?: string | null
+          updated_at?: string
+          user_id: string
+          weekly_sessions?: number | null
+        }
+        Update: {
+          body_part?: string
+          created_at?: string
+          id?: string
+          last_worked_date?: string | null
+          priority?: string | null
+          updated_at?: string
+          user_id?: string
+          weekly_sessions?: number | null
+        }
+        Relationships: []
+      }
+      daily_stats: {
+        Row: {
+          calorie_goal: number | null
+          calories_burned: number | null
+          created_at: string
+          date: string
+          id: string
+          updated_at: string
+          user_id: string
+          workouts_completed: number | null
+        }
+        Insert: {
+          calorie_goal?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          date: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          workouts_completed?: number | null
+        }
+        Update: {
+          calorie_goal?: number | null
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          workouts_completed?: number | null
+        }
+        Relationships: []
+      }
+      workouts: {
+        Row: {
+          body_parts: string[]
+          calories_burned: number
+          completed_at: string
+          created_at: string
+          difficulty: string | null
+          duration_minutes: number
+          id: string
+          name: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          body_parts?: string[]
+          calories_burned: number
+          completed_at?: string
+          created_at?: string
+          difficulty?: string | null
+          duration_minutes: number
+          id?: string
+          name: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          body_parts?: string[]
+          calories_burned?: number
+          completed_at?: string
+          created_at?: string
+          difficulty?: string | null
+          duration_minutes?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
